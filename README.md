@@ -1,7 +1,7 @@
 # py-bluetooth-utils
 Python module containing bluetooth utility functions, in particular for easy BLE scanning and advertising
 
-It either uses HCI comments using PyBluez, or does ioctl calls like it's
+It either uses HCI commands using PyBluez, or does ioctl calls like it's
 done in Bluez tools such as hciconfig.
 
 Main functions:
@@ -11,7 +11,7 @@ Main functions:
   - ``parse_le_advertising_events`` : parse BLE advertisements packets
   - ``start/stop_le_advertising`` : advertise custom data using BLE
 
-Bluez : http://www.bluez.org/
-PyBluez : http://karulis.github.io/pybluez/
+Bluez : http://www.bluez.org/  
+PyBluez : http://karulis.github.io/pybluez/  
 
 The module was in particular inspired from 'iBeacon-Scanner-' (https://github.com/switchdoclabs/iBeacon-Scanner-/blob/master/blescan.py) and sometimes directly from the Bluez sources.

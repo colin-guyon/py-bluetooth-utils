@@ -87,7 +87,7 @@ def toggle_device(dev_id, enable):
     hci_sock = socket.socket(socket.AF_BLUETOOTH,
                              socket.SOCK_RAW,
                              socket.BTPROTO_HCI)
-    print("Power %s dev_id=%d" % ('on' if enable else 'off', dev_id))
+    print("Power %s bluetooth device %d" % ('ON' if enable else 'OFF', dev_id))
     # di = struct.pack("HbBIBBIIIHHHH10I", dev_id, *((0,) * 22))
     # fcntl.ioctl(hci_sock.fileno(), bluez.HCIGETDEVINFO, di)
     req_str = struct.pack("H", dev_id)
@@ -140,7 +140,7 @@ def set_scan(dev_id, scan_type):
         raise ValueError("Unknown scan type %r" % scan_type)
 
     req_str = struct.pack("HI", dev_id, dev_opt)
-    print("Set scan type %r to device %d" % (scan_type, dev_id))
+    print("Set scan type %r to bluetooth device %d" % (scan_type, dev_id))
     try:
         fcntl.ioctl(hci_sock.fileno(), bluez.HCISETSCAN, req_str)
     finally:
@@ -237,7 +237,7 @@ def start_le_advertising(sock, min_interval=1000, max_interval=1000,
                          data_length)
     cmd_pkt = struct.pack("<B%dB" % data_length, data_length, *data)
     bluez.hci_send_cmd(sock, OGF_LE_CTL, OCF_LE_SET_ADVERTISING_DATA, cmd_pkt)
-    print("Advertising started")
+    print("Advertising started data_length=%d data=%r" % (data_length, data))
 
 
 def stop_le_advertising(sock):
@@ -256,6 +256,10 @@ def parse_le_advertising_events(sock, mac_addr=None, packet_length=None,
                                 handler=None, debug=False):
     """
     Parse and report LE advertisements.
+
+    This is a blocking call, an infinite loop is started and the
+    given handler will be called each time a new LE advertisement packet
+    is detected and corresponds to the given filters.
 
     .. note:: The :func:`.start_le_advertising` function must be
         called before calling this function.
@@ -338,61 +342,3 @@ def parse_le_advertising_events(sock, mac_addr=None, packet_length=None,
         print("\nRestore previous socket filter")
         sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, old_filter)
         raise
-
-
-if __name__ == '__main__':
-    import sys
-    from time import sleep
-
-    dev_id = 0  # the bluetooth device is hci0
-    try:
-        sock = bluez.hci_open_dev(dev_id)
-    except:
-        print("error accessing bluetooth device %i ..." % dev_id)
-        raise
-
-    set_scan(dev_id, 'noscan')
-    toggle_device(dev_id, True)
-
-    if len(sys.argv) > 1 and 'adv' in sys.argv[1]:
-        # LE advertisement
-        try:
-            start_le_advertising(sock,
-                                 min_interval=2000, max_interval=2000,
-                                 data=(0x11, 0x22, 0x33) + (0,) * 28)
-            while True:
-                sleep(2)
-        except:
-            stop_le_advertising(sock)
-            raise
-
-    else:
-        # LE scan
-        enable_le_scan(sock)
-
-        try:
-            prev_data = None
-
-            def le_advertise_packet_handler(mac, data, rssi):
-                global prev_data
-                data_str = raw_packet_to_str(data)
-                data_wo_rssi = (mac, data_str)
-                # print("BLE packet: %s %s %d" % (mac, data_str, rssi))
-                if prev_data is not None:
-                    if data_wo_rssi != prev_data:
-                        # color differences with previous packet data
-                        sys.stdout.write('data diff: ')
-                        for c1, c2 in zip(data_str, prev_data[1]):
-                            if c1 != c2:
-                                sys.stdout.write('\033[0;33m' + c1 + '\033[m')
-                            else:
-                                sys.stdout.write(c1)
-                        sys.stdout.write('\n')
-
-                prev_data = data_wo_rssi
-
-            parse_le_advertising_events(sock,
-                                        handler=le_advertise_packet_handler,
-                                        debug=True)
-        except KeyboardInterrupt:
-            disable_le_scan(sock)

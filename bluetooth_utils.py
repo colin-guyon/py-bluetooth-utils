@@ -21,6 +21,7 @@ and sometimes directly from the Bluez sources.
 """
 
 from __future__ import absolute_import
+import sys
 import struct
 import fcntl
 import array
@@ -151,11 +152,15 @@ def raw_packet_to_str(pkt):
     """
     Returns the string representation of a raw HCI packet.
     """
-    return ''.join('%02x' % struct.unpack("B", x)[0] for x in pkt)
+    if sys.version_info > (3, 0):
+        return ''.join('%02x' % struct.unpack("B", bytes([x]))[0] for x in pkt)
+    else:
+        return ''.join('%02x' % struct.unpack("B", x)[0] for x in pkt)
 
 
 def enable_le_scan(sock, interval=0x0800, window=0x0800,
-                   filter_policy=FILTER_POLICY_NO_WHITELIST):
+                   filter_policy=FILTER_POLICY_NO_WHITELIST,
+                   filter_duplicates=True):
     """
     Enable LE passive scan (with filtering of duplicate packets enabled).
 
@@ -184,7 +189,7 @@ def enable_le_scan(sock, interval=0x0800, window=0x0800,
            'yes' if filter_policy in (FILTER_POLICY_SCAN_WHITELIST,
                                       FILTER_POLICY_SCAN_AND_CONN_WHITELIST)
            else 'no'))
-    cmd_pkt = struct.pack("<BB", SCAN_ENABLE, SCAN_FILTER_DUPLICATES)
+    cmd_pkt = struct.pack("<BB", SCAN_ENABLE, SCAN_FILTER_DUPLICATES if filter_duplicates else 0x00)
     bluez.hci_send_cmd(sock, OGF_LE_CTL, OCF_LE_SET_SCAN_ENABLE, cmd_pkt)
 
 
@@ -196,7 +201,7 @@ def disable_le_scan(sock):
         ``hci_open_dev`` PyBluez function).
     """
     print("Disable LE scan")
-    cmd_pkt = struct.pack("<BB", SCAN_DISABLE, SCAN_FILTER_DUPLICATES)
+    cmd_pkt = struct.pack("<BB", SCAN_DISABLE, 0x00)
     bluez.hci_send_cmd(sock, OGF_LE_CTL, OCF_LE_SET_SCAN_ENABLE, cmd_pkt)
 
 
@@ -305,7 +310,7 @@ def parse_le_advertising_events(sock, mac_addr=None, packet_length=None,
                 print("Not a LE_META_EVENT !")
                 continue
 
-            sub_event, = struct.unpack("B", pkt[3])
+            sub_event, = struct.unpack("B", pkt[3:4])
             if sub_event != EVT_LE_ADVERTISING_REPORT:
                 if debug:
                     print("Not a EVT_LE_ADVERTISING_REPORT !")
@@ -323,7 +328,7 @@ def parse_le_advertising_events(sock, mac_addr=None, packet_length=None,
                 continue
 
             data = pkt[9:-1]
-            rssi = struct.unpack("b", pkt[-1])[0]
+            rssi = struct.unpack("b", pkt[-2:-1])[0]
 
             if mac_addr and mac_addr_str not in mac_addr:
                 if debug:

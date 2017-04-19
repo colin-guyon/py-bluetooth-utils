@@ -18,7 +18,7 @@ except:
     print("Cannot open bluetooth device %i" % dev_id)
     raise
 
-enable_le_scan(sock)
+enable_le_scan(sock, filter_duplicates=False)
 
 try:
     prev_data = None
@@ -27,7 +27,7 @@ try:
         global prev_data
         data_str = raw_packet_to_str(data)
         data_wo_rssi = (mac, data_str)
-        # print("BLE packet: %s %s %d" % (mac, data_str, rssi))
+        print("BLE packet: %s %s %d" % (mac, data_str, rssi))
         if prev_data is not None:
             if data_wo_rssi != prev_data:
                 # color differences with previous packet data
@@ -45,6 +45,6 @@ try:
     # advertisement packet is detected)
     parse_le_advertising_events(sock,
                                 handler=le_advertise_packet_handler,
-                                debug=True)
+                                debug=False)
 except KeyboardInterrupt:
     disable_le_scan(sock)

@@ -341,9 +341,52 @@ def parse_le_advertising_events(sock, mac_addr=None, packet_length=None,
                       (mac_addr_str, raw_packet_to_str(data), rssi))
 
             if handler is not None:
-                handler(mac_addr_str, data, rssi)
+                try:
+                    handler(mac_addr_str, data, rssi)
+                except Exception as e:
+                    print('Exception when calling handler with a BLE advertising event: %r' % (e,))
 
     except KeyboardInterrupt:
         print("\nRestore previous socket filter")
         sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, old_filter)
         raise
+
+"""
+def hci_le_add_white_list(int dd, const bdaddr_t *bdaddr, uint8_t type, int to)
+{
+    struct hci_request {
+        uint16_t ogf;
+        uint16_t ocf;
+        int      event;
+        void     *cparam;
+        int      clen;
+        void     *rparam;
+        int      rlen;
+    };
+
+    struct hci_request rq;
+    le_add_device_to_white_list_cp cp;
+    uint8_t status;
+
+    memset(&cp, 0, sizeof(cp));
+    cp.bdaddr_type = type;
+    bacpy(&cp.bdaddr, bdaddr);
+
+    memset(&rq, 0, sizeof(rq));
+    rq.ogf = OGF_LE_CTL;
+    rq.ocf = OCF_LE_ADD_DEVICE_TO_WHITE_LIST;
+    rq.cparam = &cp;
+    rq.clen = LE_ADD_DEVICE_TO_WHITE_LIST_CP_SIZE;
+    rq.rparam = &status;
+    rq.rlen = 1;
+
+    if (hci_send_req(dd, &rq, to) < 0)
+            return -1;
+
+    if (status) {
+            errno = EIO;
+            return -1;
+    }
+
+    return 0;
+}"""

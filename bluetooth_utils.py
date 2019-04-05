@@ -281,8 +281,8 @@ def parse_le_advertising_events(sock, mac_addr=None, packet_length=None,
     :param handler: Handler that will be called each time a LE advertisement
         packet is available (in accordance with the ``mac_addr``
         and ``packet_length`` filters).
-    :type handler: ``callable`` taking 3 parameters:
-        mac (``str``), data (raw bytes ``str``) and rssi (``int``)
+    :type handler: ``callable`` taking 4 parameters:
+        mac (``str``), adv_type (``int``), data (``bytes``) and rssi (``int``)
     :param debug: Enable debug prints.
     :type debug: ``bool``
     """
@@ -317,13 +317,14 @@ def parse_le_advertising_events(sock, mac_addr=None, packet_length=None,
                 continue
 
             pkt = pkt[4:]
+            adv_type = struct.unpack("b", pkt[1:2])[0]
             mac_addr_str = bluez.ba2str(pkt[3:9])
 
             if packet_length and plen != packet_length:
                 # ignore this packet
                 if debug:
-                    print("packet with non-matching length: mac=%s plen=%s" %
-                          (mac_addr_str, plen))
+                    print("packet with non-matching length: mac=%s adv_type=%02x plen=%s" %
+                          (mac_addr_str, adv_type, plen))
                     print(raw_packet_to_str(pkt))
                 continue
 
@@ -332,17 +333,17 @@ def parse_le_advertising_events(sock, mac_addr=None, packet_length=None,
 
             if mac_addr and mac_addr_str not in mac_addr:
                 if debug:
-                    print("packet with non-matching mac %s data=%s RSSI=%s" %
-                          (mac_addr_str, raw_packet_to_str(data), rssi))
+                    print("packet with non-matching mac %s adv_type=%02x data=%s RSSI=%s" %
+                          (mac_addr_str, adv_type, raw_packet_to_str(data), rssi))
                 continue
 
             if debug:
-                print("LE advertisement: mac=%s data=%s RSSI=%d" %
-                      (mac_addr_str, raw_packet_to_str(data), rssi))
+                print("LE advertisement: mac=%s adv_type=%02x data=%s RSSI=%d" %
+                      (mac_addr_str, adv_type, raw_packet_to_str(data), rssi))
 
             if handler is not None:
                 try:
-                    handler(mac_addr_str, data, rssi)
+                    handler(mac_addr_str, adv_type, data, rssi)
                 except Exception as e:
                     print('Exception when calling handler with a BLE advertising event: %r' % (e,))
 

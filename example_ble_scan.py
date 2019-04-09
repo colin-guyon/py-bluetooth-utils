@@ -23,11 +23,11 @@ enable_le_scan(sock, filter_duplicates=False)
 try:
     prev_data = None
 
-    def le_advertise_packet_handler(mac, data, rssi):
+    def le_advertise_packet_handler(mac, adv_type, data, rssi):
         global prev_data
         data_str = raw_packet_to_str(data)
         data_wo_rssi = (mac, data_str)
-        print("BLE packet: %s %s %d" % (mac, data_str, rssi))
+        print("BLE packet: %s %02x %s %d" % (mac, adv_type, data_str, rssi))
         if prev_data is not None:
             if data_wo_rssi != prev_data:
                 # color differences with previous packet data

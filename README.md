@@ -14,7 +14,7 @@ Main functions:
   - ``start/stop_le_advertising`` : advertise custom data using BLE
 
 Bluez : http://www.bluez.org/  
-PyBluez : http://karulis.github.io/pybluez/  
+PyBluez : https://github.com/pybluez/pybluez
 
 The module was in particular inspired from 'iBeacon-Scanner-'
 (https://github.com/switchdoclabs/iBeacon-Scanner-/blob/master/blescan.py)

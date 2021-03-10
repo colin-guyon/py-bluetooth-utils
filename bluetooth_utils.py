@@ -288,7 +288,7 @@ def parse_le_advertising_events(sock, mac_addr=None, packet_length=None,
     """
     if not debug and handler is None:
         raise ValueError("You must either enable debug or give a handler !")
-
+    
     old_filter = sock.getsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, 14)
 
     flt = bluez.hci_filter_new()
@@ -344,13 +344,15 @@ def parse_le_advertising_events(sock, mac_addr=None, packet_length=None,
 
             if handler is not None:
                 try:
-                    handler(mac_addr_str, adv_type, data, rssi)
+                    if handler(mac_addr_str, adv_type, data, rssi) == False:
+                        raise StopIteration
+                except StopIteration:
+                    raise
                 except Exception as e:
                     print('Exception when calling handler with a BLE advertising event: %r' % (e,))
                     import traceback
                     traceback.print_exc()
-
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit, StopIteration):
         print("\nRestore previous socket filter")
         sock.setsockopt(bluez.SOL_HCI, bluez.HCI_FILTER, old_filter)
         raise
